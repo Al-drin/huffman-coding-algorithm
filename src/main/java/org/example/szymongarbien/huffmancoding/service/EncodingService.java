@@ -1,15 +1,20 @@
 package org.example.szymongarbien.huffmancoding.service;
 
+import com.google.gson.Gson;
 import org.example.szymongarbien.huffmancoding.domain.HuffComparator;
 import org.example.szymongarbien.huffmancoding.domain.HuffMessage;
 import org.example.szymongarbien.huffmancoding.domain.HuffNode;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.PriorityQueue;
-import java.util.Queue;
+import java.io.*;
+import java.util.*;
 
 public class EncodingService {
+
+    Gson gson;
+
+    public EncodingService() {
+        gson = new Gson();
+    }
 
     public HuffMessage encode(String str) {
 
@@ -64,13 +69,13 @@ public class EncodingService {
     public String decode(HuffMessage huffMessage) {
         Map<String, Character> decodePage = new HashMap<>();
 
-        for (Map.Entry<Character, String> entry : huffMessage.codePage().entrySet()) {
+        for (Map.Entry<Character, String> entry : huffMessage.getCodePage().entrySet()) {
             decodePage.put(entry.getValue(), entry.getKey());
         }
 
         StringBuilder decodedMessage = new StringBuilder();
 
-        String msg = huffMessage.msg();
+        String msg = huffMessage.getMsg();
         String substring;
         int startIndex = 0;
         int endIndex = 1;
@@ -85,5 +90,22 @@ public class EncodingService {
         }
 
         return decodedMessage.toString();
+    }
+
+    public boolean saveMessage(HuffMessage huffMessage, File file) {
+        try(FileWriter fw = new FileWriter(file)) {
+            gson.toJson(huffMessage, fw);
+            return true;
+        } catch (IOException e) {
+            return false;
+        }
+    }
+
+    public Optional<HuffMessage> loadMessage(File file) {
+        try(FileReader fr = new FileReader(file)) {
+            return Optional.of(gson.fromJson(fr, HuffMessage.class));
+        } catch (Exception e) {
+            return Optional.empty();
+        }
     }
 }

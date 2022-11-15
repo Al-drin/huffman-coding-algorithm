@@ -3,31 +3,61 @@ package org.example.szymongarbien.huffmancoding;
 import org.example.szymongarbien.huffmancoding.domain.HuffMessage;
 import org.example.szymongarbien.huffmancoding.service.EncodingService;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Optional;
+
 public class Main {
     public static void main(String[] args) {
         EncodingService service = new EncodingService();
 
-        //String text = "TO BE OR NOT TO BE";
-        String text = "A, wie pan, moim zdaniem to nie ma tak, że dobrze, albo że niedobrze. Gdybym miał " +
-                "powiedzieć, co cenię w życiu najbardziej, powiedziałbym, że ludzi. Ludzi, którzy podali mi " +
-                "pomocną dłoń, kiedy sobie nie radziłem, kiedy byłem sam, i co ciekawe, to właśnie przypadkowe " +
-                "spotkania wpływają na nasze życie. Chodzi o to, że kiedy wyznaje się pewne wartości, nawet " +
-                "pozornie uniwersalne, bywa, że nie znajduje się zrozumienia, które by tak rzec, które pomaga się " +
-                "nam rozwijać. Ja miałem szczęście, by tak rzec, ponieważ je znalazłem, i dziękuję życiu! Dziękuję " +
-                "mu; życie to śpiew, życie to taniec, życie to miłość! Wielu ludzi pyta mnie o to samo: ale jak ty " +
-                "to robisz, skąd czerpiesz tę radość? A ja odpowiadam, że to proste! To umiłowanie życia. To " +
-                "właśnie ono sprawia, że dzisiaj na przykład buduję maszyny, a jutro – kto wie? Dlaczego by nie – " +
-                "oddam się pracy społecznej i będę, ot, choćby, sadzić... doć— m-marchew...";
+        if (args.length == 0) {
+            System.out.println("Please provide a file path.");
+            return;
+        }
 
-        System.out.println("Original message: " + text);
+        File fileRead = new File(args[0]);
 
-        HuffMessage codedMessage = service.encode(text);
+        if (!fileRead.exists() || fileRead.isDirectory()) {
+            System.out.println("File not found!");
+            return;
+        }
 
-        System.out.println(codedMessage);
+        //let's try to load this file as a JSON with the encoded message
 
-        String decodedMessage = service.decode(codedMessage);
+        Optional<HuffMessage> messageOptional = service.loadMessage(fileRead);
 
-        System.out.println("Decoded message: " + decodedMessage);
+        if (messageOptional.isPresent()) {
+            String text = service.decode(messageOptional.get());
 
+            System.out.println("Decoded message:");
+            System.out.println(text);
+
+            return;
+        }
+
+        //if it's unsuccessful - we treat it as plain text and encode it
+
+        String text = "";
+
+        try {
+            text = Files.readString(Path.of(args[0]));
+        } catch(IOException e) {
+            e.printStackTrace();
+        }
+
+        System.out.println("Original text:");
+        System.out.println(text);
+
+        HuffMessage message = service.encode(text);
+
+        if (service.saveMessage(message, new File(args[0] + ".huf"))) {
+            System.out.println("File successfully encoded as:");
+            System.out.println(args[0] + ".huf");
+        } else {
+            System.out.println("Cannot save encoded file!");
+        }
     }
 }
