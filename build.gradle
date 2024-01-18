@@ -21,7 +21,7 @@ dependencies {
 
 jar {
     manifest {
-        attributes 'Main-Class': 'org.example.szymongarbien.huffmancoding.FileInterface'
+        attributes 'Main-Class': 'org.example.szymongarbien.huffmancoding.TestInterface'
     }
 
     from {
