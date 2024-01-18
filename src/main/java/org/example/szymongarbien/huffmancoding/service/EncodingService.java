@@ -1,64 +1,86 @@
 package org.example.szymongarbien.huffmancoding.service;
 
-import com.google.gson.Gson;
 import org.example.szymongarbien.huffmancoding.domain.HuffComparator;
 import org.example.szymongarbien.huffmancoding.domain.HuffMessage;
 import org.example.szymongarbien.huffmancoding.domain.HuffNode;
 
-import java.io.*;
 import java.util.*;
 
 public class EncodingService {
 
-    Gson gson;
+    int id;
 
-    public EncodingService() {
-        gson = new Gson();
-    }
+    public HuffMessage encode(String originalString) {
 
-    public HuffMessage encode(String str) {
+        Map<Character, Integer> charFrequency = buildCharFrequencyMap(originalString);
 
-        Map<Character, Integer> charFrequency = new HashMap<>();
+        Queue<HuffNode> huffQueue = buildNodeQueue(charFrequency);
 
-        for (int i = 0; i < str.length(); i++) {
-            charFrequency.merge(str.charAt(i), 1, Integer::sum);
-        }
-
-        Queue<HuffNode> huffQueue = new PriorityQueue<>(new HuffComparator());
-
-        for (Map.Entry<Character, Integer> entry : charFrequency.entrySet()) {
-            HuffNode huffNode = new HuffNode(entry.getKey(), entry.getValue());
-
-            huffQueue.add(huffNode);
-        }
-
-        HuffNode huffRoot = new HuffNode();
-
-        while (huffQueue.size() > 1) {
-
-            HuffNode huffNode = new HuffNode();
-            huffNode.setLeft(huffQueue.poll());
-            huffNode.setRight(huffQueue.poll());
-            huffNode.setVal( huffNode.getLeft().getVal() + huffNode.getRight().getVal() );
-
-            huffRoot = huffNode;
-            huffQueue.add(huffNode);
-        }
+        HuffNode huffRoot = buildHuffmanTree(huffQueue);
 
         Map<Character, String> codePage = new HashMap<>(charFrequency.size());
 
         generateCodePage(huffRoot, codePage, "");
 
-        for (Map.Entry<Character, String> entry : codePage.entrySet()) {
-            str = str.replace(""+entry.getKey(), entry.getValue());
+        String encodedString = buildEncodedString(originalString, codePage);
+
+        return new HuffMessage(codePage, encodedString, huffRoot);
+    }
+
+    private String buildEncodedString(String originalString, Map<Character, String> codePage) {
+        StringBuilder encodedString = new StringBuilder();
+
+        for (int i = 0; i< originalString.length(); i++) {
+            encodedString.append(codePage.get(originalString.charAt(i)));
+        }
+        return encodedString.toString();
+    }
+
+    private HuffNode buildHuffmanTree(Queue<HuffNode> huffQueue) {
+        HuffNode huffRoot = new HuffNode();
+        HuffNode huffNode;
+
+        while (huffQueue.size() > 1) {
+
+            huffNode = new HuffNode();
+            huffNode.setId(++id);
+            huffNode.setLeft(huffQueue.poll());
+            huffNode.setRight(huffQueue.poll());
+            huffNode.setWeight( huffNode.getLeft().getWeight() + huffNode.getRight().getWeight() );
+
+            huffRoot = huffNode;
+            huffQueue.add(huffNode);
         }
 
-        return new HuffMessage(codePage, str);
+        return huffRoot;
+    }
+
+    private Queue<HuffNode> buildNodeQueue(Map<Character, Integer> charFrequency) {
+        Queue<HuffNode> huffQueue = new PriorityQueue<>(new HuffComparator());
+
+        for (Map.Entry<Character, Integer> entry : charFrequency.entrySet()) {
+            HuffNode huffNode = new HuffNode(++id, entry.getKey(), entry.getValue());
+
+            huffQueue.add(huffNode);
+        }
+
+        return huffQueue;
+    }
+
+    private Map<Character, Integer> buildCharFrequencyMap(String str) {
+        Map<Character, Integer> charFrequency = new HashMap<>();
+        
+        for (int i = 0; i < str.length(); i++) {
+            charFrequency.merge(str.charAt(i), 1, Integer::sum);
+        }
+        
+        return charFrequency;
     }
 
     private void generateCodePage(HuffNode node, Map<Character, String> codePage, String code) {
-        if (node.getC() > 0) {
-            codePage.put(node.getC(), code);
+
+        if (node.getCharacter() > 0) {
+            codePage.put(node.getCharacter(), code);
             return;
         }
 
@@ -67,45 +89,37 @@ public class EncodingService {
     }
 
     public String decode(HuffMessage huffMessage) {
-        Map<String, Character> decodePage = new HashMap<>();
+        Map<String, Character> decodePage = buildDecodePage(huffMessage.getCodePage());
 
-        for (Map.Entry<Character, String> entry : huffMessage.getCodePage().entrySet()) {
-            decodePage.put(entry.getValue(), entry.getKey());
-        }
+        return buildDecodedString(huffMessage.getEncodedString(), decodePage);
+    }
 
-        StringBuilder decodedMessage = new StringBuilder();
+    private String buildDecodedString(String encodedString, Map<String, Character> decodePage) {
+        StringBuilder decodedString = new StringBuilder();
 
-        String msg = huffMessage.getMsg();
         String substring;
         int startIndex = 0;
         int endIndex = 1;
-        while (endIndex < msg.length()) {
-            substring = msg.substring(startIndex, endIndex);
+
+        while (endIndex < encodedString.length()) {
+            substring = encodedString.substring(startIndex, endIndex);
             while (!decodePage.containsKey(substring)) {
                 endIndex++;
-                substring = msg.substring(startIndex, endIndex);
+                substring = encodedString.substring(startIndex, endIndex);
             }
-            decodedMessage.append(decodePage.get(substring));
+            decodedString.append(decodePage.get(substring));
             startIndex = endIndex++;
         }
-
-        return decodedMessage.toString();
+        return decodedString.toString();
     }
 
-    public boolean saveMessage(HuffMessage huffMessage, File file) {
-        try(FileWriter fw = new FileWriter(file)) {
-            gson.toJson(huffMessage, fw);
-            return true;
-        } catch (IOException e) {
-            return false;
-        }
-    }
+    public Map<String, Character> buildDecodePage(Map<Character, String> codePage) {
+        Map<String, Character> decodePage = new HashMap<>();
 
-    public Optional<HuffMessage> loadMessage(File file) {
-        try(FileReader fr = new FileReader(file)) {
-            return Optional.of(gson.fromJson(fr, HuffMessage.class));
-        } catch (Exception e) {
-            return Optional.empty();
+        for (Map.Entry<Character, String> entry : codePage.entrySet()) {
+            decodePage.put(entry.getValue(), entry.getKey());
         }
+
+        return decodePage;
     }
 }

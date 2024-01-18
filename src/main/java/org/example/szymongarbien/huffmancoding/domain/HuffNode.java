@@ -1,8 +1,9 @@
 package org.example.szymongarbien.huffmancoding.domain;
 
 public class HuffNode {
-    char c;
-    int val;
+    int id;
+    char character;
+    int weight;
 
     HuffNode left;
     HuffNode right;
@@ -10,17 +11,18 @@ public class HuffNode {
     public HuffNode() {
     }
 
-    public HuffNode(char c, int val) {
-        this.c = c;
-        this.val = val;
+    public HuffNode(int id, char character, int weight) {
+        this.id = id;
+        this.character = character;
+        this.weight = weight;
     }
 
-    public char getC() {
-        return c;
+    public char getCharacter() {
+        return character;
     }
 
-    public int getVal() {
-        return val;
+    public int getWeight() {
+        return weight;
     }
 
     public HuffNode getLeft() {
@@ -31,8 +33,12 @@ public class HuffNode {
         return right;
     }
 
-    public void setVal(int val) {
-        this.val = val;
+    public int getId() {
+        return id;
+    }
+
+    public void setWeight(int weight) {
+        this.weight = weight;
     }
 
     public void setLeft(HuffNode left) {
@@ -41,5 +47,9 @@ public class HuffNode {
 
     public void setRight(HuffNode right) {
         this.right = right;
+    }
+
+    public void setId(int id) {
+        this.id = id;
     }
 }
